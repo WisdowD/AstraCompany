@@ -62,7 +62,10 @@ async function listarMensagens() {
       }
     }
   );
-  if (!res.ok) throw new Error('Erro ao buscar mensagens.');
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase retornou ${res.status}: ${err}`);
+  }
   return res.json();
 }
 
