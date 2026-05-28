@@ -164,12 +164,13 @@ document.querySelectorAll('.nav-links a').forEach(a => {
    CONTACT FORM
 ===================================================== */
 function sendMsg(e) {
-    const btn = e.currentTarget;
-    const name = document.getElementById('cf-name').value.trim();
-    const email = document.getElementById('cf-email').value.trim();
-    const msg = document.getElementById('cf-msg').value.trim();
+    const btn      = e.currentTarget;
+    const nome     = document.getElementById('cf-name').value.trim();
+    const email    = document.getElementById('cf-email').value.trim();
+    const assunto  = (document.getElementById('cf-subject')?.value || '').trim();
+    const mensagem = document.getElementById('cf-msg').value.trim();
 
-    if (!name || !email || !msg) {
+    if (!nome || !email || !mensagem) {
         btn.style.background = '#e32600';
         btn.textContent = '⚠ Preencha todos os campos obrigatórios';
         setTimeout(() => { btn.style.background = ''; btn.textContent = '✦ Enviar mensagem'; }, 2500);
@@ -178,16 +179,29 @@ function sendMsg(e) {
 
     btn.textContent = 'Enviando...';
     btn.disabled = true;
-    setTimeout(() => {
+
+    fetch('/contato', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ nome, email, assunto, mensagem })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.ok) throw new Error(data.erro || 'Erro');
         btn.textContent = '✦ Enviar mensagem';
         btn.disabled = false;
         btn.style.background = '';
         document.getElementById('successMsg').style.display = 'block';
-        // clear fields
         ['cf-name', 'cf-email', 'cf-subject', 'cf-msg'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
         });
         setTimeout(() => { document.getElementById('successMsg').style.display = 'none'; }, 5000);
-    }, 1200);
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.style.background = '#e32600';
+        btn.textContent = '⚠ Erro ao enviar. Tente novamente.';
+        setTimeout(() => { btn.style.background = ''; btn.textContent = '✦ Enviar mensagem'; }, 3000);
+    });
 }
