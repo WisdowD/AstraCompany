@@ -6,6 +6,129 @@
     const ctx = canvas.getContext('2d');
     let W, H, stars = [];
 
+    /* ── ROCKET ── */
+    let rocket = null;
+    let rocketTimer = 300;
+
+    function spawnRocket() {
+        const fromLeft = Math.random() > 0.5;
+        const speed = Math.max(W * 0.004, 2.5);
+        rocket = {
+            x       : fromLeft ? -80 : W + 80,
+            y       : H * (0.15 + Math.random() * 0.55),
+            vx      : fromLeft ? speed : -speed,
+            vy      : -(speed * (0.22 + Math.random() * 0.18)),
+            alpha   : 0,
+            started : false,
+            trail   : []
+        };
+    }
+
+    function tickRocket() {
+        const r = rocket;
+        r.x += r.vx;
+        r.y += r.vy;
+
+        const onScreen = r.x > -20 && r.x < W + 20 && r.y > -20 && r.y < H + 20;
+        if (onScreen) r.started = true;
+
+        r.alpha = onScreen ? Math.min(r.alpha + 0.04, 0.78) : Math.max(r.alpha - 0.04, 0);
+
+        if (r.started && !onScreen && r.alpha <= 0) {
+            rocket = null;
+            rocketTimer = 480 + Math.floor(Math.random() * 360);
+            return;
+        }
+
+        r.trail.unshift({ x: r.x, y: r.y });
+        if (r.trail.length > 40) r.trail.pop();
+
+        r.trail.forEach((pt, i) => {
+            const t  = 1 - i / r.trail.length;
+            const ta = r.alpha * t * 0.5;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3.5 * t, 0, Math.PI * 2);
+            ctx.fillStyle = i < 8
+                ? `rgba(255,210,60,${ta})`
+                : i < 20
+                    ? `rgba(255,110,20,${ta * 0.7})`
+                    : `rgba(160,70,10,${ta * 0.35})`;
+            ctx.fill();
+        });
+
+        const angle = Math.atan2(r.vy, r.vx);
+        ctx.save();
+        ctx.translate(r.x, r.y);
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.globalAlpha = r.alpha;
+
+        const S = 1.0;
+
+        // chama
+        const fg = ctx.createRadialGradient(0, 20*S, 0, 0, 24*S, 10*S);
+        fg.addColorStop(0,   'rgba(255,220,80,0.9)');
+        fg.addColorStop(0.5, 'rgba(255,100,10,0.5)');
+        fg.addColorStop(1,   'rgba(200,30,0,0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.ellipse(0, 22*S, 5*S, 12*S, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // corpo
+        const bx=-6*S, by=-14*S, bw=12*S, bh=28*S, br=4*S;
+        ctx.fillStyle = 'rgba(235,235,255,0.92)';
+        ctx.beginPath();
+        ctx.moveTo(bx+br, by);
+        ctx.lineTo(bx+bw-br, by);
+        ctx.quadraticCurveTo(bx+bw, by, bx+bw, by+br);
+        ctx.lineTo(bx+bw, by+bh-br);
+        ctx.quadraticCurveTo(bx+bw, by+bh, bx+bw-br, by+bh);
+        ctx.lineTo(bx+br, by+bh);
+        ctx.quadraticCurveTo(bx, by+bh, bx, by+bh-br);
+        ctx.lineTo(bx, by+br);
+        ctx.quadraticCurveTo(bx, by, bx+br, by);
+        ctx.closePath();
+        ctx.fill();
+
+        // cone amarelo
+        ctx.fillStyle = 'rgba(250,214,67,0.98)';
+        ctx.beginPath();
+        ctx.moveTo(-6*S, -14*S);
+        ctx.lineTo( 6*S, -14*S);
+        ctx.lineTo(0, -27*S);
+        ctx.closePath();
+        ctx.fill();
+
+        // asa esquerda
+        ctx.fillStyle = 'rgba(38,0,227,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(-6*S,  8*S);
+        ctx.lineTo(-14*S, 18*S);
+        ctx.lineTo(-6*S,  14*S);
+        ctx.closePath();
+        ctx.fill();
+
+        // asa direita
+        ctx.beginPath();
+        ctx.moveTo( 6*S,  8*S);
+        ctx.lineTo( 14*S, 18*S);
+        ctx.lineTo( 6*S,  14*S);
+        ctx.closePath();
+        ctx.fill();
+
+        // janela
+        ctx.fillStyle = 'rgba(100,80,255,0.8)';
+        ctx.beginPath();
+        ctx.arc(0, -3*S, 4*S, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(200,195,255,0.7)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        ctx.restore();
+    }
+    /* ── FIM ROCKET ── */
+
     function resize() {
         W = canvas.width = window.innerWidth;
         H = canvas.height = window.innerHeight;
@@ -86,6 +209,15 @@
                 ctx.fill();
             }
         });
+
+        // foguete
+        if (rocket) {
+            tickRocket();
+        } else {
+            rocketTimer--;
+            if (rocketTimer <= 0) spawnRocket();
+        }
+
         requestAnimationFrame(draw);
     }
 
